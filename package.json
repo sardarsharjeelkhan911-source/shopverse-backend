@@ -1,0 +1,16 @@
+{
+  "name": "shopverse",
+  "version": "1.0.0",
+  "private": true,
+  "description": "ShopVerse e-commerce — Express + Prisma backend and React admin dashboard",
+  "workspaces": [
+    "server",
+    "dashboard"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace server",
+    "build": "npm run build --workspace server && npm run build --workspace dashboard",
+    "seed": "npm run seed --workspace server",
+    "test": "npm run test --workspace server"
+  }
+}

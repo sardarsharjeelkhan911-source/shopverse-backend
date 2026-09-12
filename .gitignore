@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.env
+*.log
+npm-debug.log*
+.vscode/
+data/
+server/uploads/*
+!server/uploads/.gitkeep
+server/prisma/dev.db
+server/prisma/dev.db-journal
+server/prisma/test.db
+server/prisma/test.db-journal
+dashboard/dist/
