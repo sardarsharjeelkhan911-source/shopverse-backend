@@ -28,11 +28,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .finally(() => setLoading(false));
   }, []);
 
-  async function login(email: string, password: string) {
-    const d = await api.post<{ accessToken: string; refreshToken: string; admin: AdminUser }>("/api/auth/login", {
-      email,
-      password,
-    });
+  async function login(identifier: string, password: string) {
+    const body = /^\S+@\S+\.\S+$/.test(identifier) ? { email: identifier, password } : { username: identifier, password };
+    const d = await api.post<{ accessToken: string; refreshToken: string; admin: AdminUser }>("/api/auth/login", body);
     setTokens({ accessToken: d.accessToken, refreshToken: d.refreshToken } satisfies AuthTokens);
     setAdmin(d.admin);
   }

@@ -15,17 +15,21 @@ function randomToken(bytes = 48): string {
   return crypto.randomBytes(bytes).toString("base64url");
 }
 
-export async function login(email: string, password: string, ip?: string) {
-  const admin = await prisma.adminUser.findUnique({
-    where: { email: email.toLowerCase().trim() },
+export async function login(input: { email?: string; username?: string; password: string }, ip?: string) {
+  const email = input.email?.toLowerCase().trim();
+  const username = input.username?.trim().toLowerCase();
+  const admin = await prisma.adminUser.findFirst({
+    where: email
+      ? { OR: [{ email }, ...(username ? [{ username }] : [])] }
+      : { username: username ?? "" },
     include: { role: { include: { rolePermissions: { include: { permission: true } } } } },
   });
   if (!admin || !admin.active) {
-    throw new HttpError("Invalid email or password", 401);
+    throw new HttpError("Invalid username or password", 401);
   }
-  const valid = await verifyPassword(password, admin.passwordHash);
+  const valid = await verifyPassword(input.password, admin.passwordHash);
   if (!valid) {
-    throw new HttpError("Invalid email or password", 401);
+    throw new HttpError("Invalid username or password", 401);
   }
 
   await prisma.adminUser.update({
@@ -52,7 +56,7 @@ export async function login(email: string, password: string, ip?: string) {
       version: 1,
     }),
     refreshToken,
-    admin: publicProfile(admin.id, admin.name, admin.email, admin.role.name),
+    admin: publicProfile(admin.id, admin.name, admin.username, admin.email, admin.role.name),
     permissions: admin.role.rolePermissions.map((rp) => rp.permission.key),
   };
 }
@@ -91,7 +95,7 @@ export async function refresh(refreshToken: string, ip?: string) {
       version: 1,
     }),
     refreshToken: newToken,
-    admin: publicProfile(stored.adminId, stored.admin.name, stored.admin.email, stored.admin.role.name),
+    admin: publicProfile(stored.adminId, stored.admin.name, stored.admin.username, stored.admin.email, stored.admin.role.name),
     permissions,
   };
 }
@@ -166,6 +170,6 @@ async function resolvePermissions(adminId: string): Promise<string[]> {
   return admin ? admin.role.rolePermissions.map((rp) => rp.permission.key) : [];
 }
 
-function publicProfile(id: string, name: string, email: string, role: string) {
-  return { id, name, email, role };
+function publicProfile(id: string, name: string, username: string | null, email: string, role: string) {
+  return { id, name, username, email, role };
 }

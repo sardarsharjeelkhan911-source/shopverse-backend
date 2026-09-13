@@ -5,7 +5,7 @@ import { useAuth } from "../context/AuthContext";
 export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -15,7 +15,7 @@ export default function Login() {
     setError("");
     setBusy(true);
     try {
-      await login(email.trim(), password);
+      await login(identifier.trim(), password);
       navigate("/", { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
@@ -35,14 +35,15 @@ export default function Login() {
         <form onSubmit={submit} className="space-y-4">
           {error && <div className="rounded-lg bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700">{error}</div>}
           <div>
-            <label className="mb-1 block text-xs font-medium text-slate-600">Email</label>
+            <label className="mb-1 block text-xs font-medium text-slate-600">Username or Email</label>
             <input
-              type="email"
+              type="text"
               required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
-              placeholder="you@shopverse.pk"
+              placeholder="admin"
+              autoComplete="username"
             />
           </div>
           <div>

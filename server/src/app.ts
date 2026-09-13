@@ -43,9 +43,13 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use(globalLimiter);
 
-// Static uploads
+// Static uploads (uploads unavailable on read-only filesystems, e.g. Vercel serverless)
 const uploadDir = path.resolve(process.cwd(), env.UPLOAD_DIR);
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+try {
+  if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+} catch {
+  /* read-only filesystem — local uploads disabled */
+}
 app.use("/uploads", express.static(uploadDir));
 
 // Health

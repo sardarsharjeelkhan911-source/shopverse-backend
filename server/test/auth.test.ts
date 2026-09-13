@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
-import { api, loginAdmin, authHeader, ADMIN_EMAIL, ADMIN_PASSWORD, prisma } from "./helpers";
+import { api, loginAdmin, authHeader, ADMIN_EMAIL, ADMIN_USERNAME, ADMIN_PASSWORD, STAFF_USERNAME, STAFF_PASSWORD, prisma } from "./helpers";
+import { hashPassword } from "../src/lib/password";
 
 describe("Auth", () => {
   test("login succeeds with correct credentials", async () => {
@@ -19,6 +20,34 @@ describe("Auth", () => {
   test("login rejects unknown email", async () => {
     const res = await api.post("/api/auth/login").send({ email: "nobody@test.pk", password: "whatever123" });
     expect(res.status).toBe(401);
+  });
+
+  test("login succeeds with username instead of email", async () => {
+    const res = await api.post("/api/auth/login").send({ username: ADMIN_USERNAME, password: ADMIN_PASSWORD });
+    expect(res.status).toBe(200);
+    expect(res.body.data.admin.username).toBe(ADMIN_USERNAME);
+    expect(res.body.data.admin.role).toBe("SUPER_ADMIN");
+  });
+
+  test("STAFF user (storef) can login with username", async () => {
+    const res = await api.post("/api/auth/login").send({ username: STAFF_USERNAME, password: STAFF_PASSWORD });
+    expect(res.status).toBe(200);
+    expect(res.body.data.admin.username).toBe(STAFF_USERNAME);
+    expect(res.body.data.admin.role).toBe("STAFF");
+    // staff permitted on orders but not settings/admins
+    expect(res.body.data.permissions).toContain("orders");
+    expect(res.body.data.permissions).not.toContain("settings");
+    expect(res.body.data.permissions).not.toContain("admins");
+  });
+
+  test("login rejects unknown username", async () => {
+    const res = await api.post("/api/auth/login").send({ username: "nobody", password: "whatever123" });
+    expect(res.status).toBe(401);
+  });
+
+  test("login rejects when neither username nor email provided", async () => {
+    const res = await api.post("/api/auth/login").send({ password: "whatever123" });
+    expect(res.status).toBe(422);
   });
 
   test("GET /api/auth/me returns profile with permissions", async () => {
@@ -72,8 +101,11 @@ describe("Auth", () => {
     const loginNew = await api.post("/api/auth/login").send({ email: ADMIN_EMAIL, password: "BrandNew@2026" });
     expect(loginNew.status).toBe(200);
 
-    // revert password
-    await api.post("/api/auth/change-password").set(authHeader(accessToken)).send({ currentPassword: "BrandNew@2026", newPassword: ADMIN_PASSWORD });
+    // restore original password directly via prisma (change-password enforces min 8 chars, admin45 is shorter)
+    await prisma.adminUser.update({
+      where: { email: ADMIN_EMAIL },
+      data: { passwordHash: await hashPassword(ADMIN_PASSWORD) },
+    });
     const loginOld = await api.post("/api/auth/login").send({ email: ADMIN_EMAIL, password: ADMIN_PASSWORD });
     expect(loginOld.status).toBe(200);
   });

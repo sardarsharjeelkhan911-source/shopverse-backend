@@ -50,7 +50,7 @@ export function errorHandler(err: unknown, _req: Request, res: Response, _next: 
 
 export const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  limit: 10,
+  limit: process.env.NODE_ENV === "test" ? 100000 : 10,
   standardHeaders: "draft-7",
   legacyHeaders: false,
   message: { success: false, message: "Too many login attempts. Try again later.", data: null },
@@ -58,7 +58,7 @@ export const loginLimiter = rateLimit({
 
 export const globalLimiter = rateLimit({
   windowMs: 60 * 1000,
-  limit: 600,
+  limit: process.env.NODE_ENV === "test" ? 100000 : 600,
   standardHeaders: "draft-7",
   legacyHeaders: false,
   message: { success: false, message: "Too many requests", data: null },
@@ -66,7 +66,7 @@ export const globalLimiter = rateLimit({
 
 export const authLimiter = rateLimit({
   windowMs: 60 * 1000,
-  limit: 20,
+  limit: process.env.NODE_ENV === "test" ? 100000 : 20,
   standardHeaders: "draft-7",
   legacyHeaders: false,
   message: { success: false, message: "Too many requests", data: null },

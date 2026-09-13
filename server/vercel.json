@@ -1,0 +1,7 @@
+{
+  "version": 2,
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/" }
+  ],
+  "buildCommand": "npx prisma generate --schema prisma/schema.vercel.prisma && DATABASE_URL=\"$POSTGRES_URL_NON_POOLING\" npx prisma db push --schema prisma/schema.vercel.prisma --skip-generate && DATABASE_URL=\"$POSTGRES_URL_NON_POOLING\" npm run seed"
+}

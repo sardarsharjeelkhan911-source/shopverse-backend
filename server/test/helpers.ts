@@ -8,12 +8,17 @@ export { app, prisma };
 export const api = supertest(app);
 
 export const ADMIN_EMAIL = "superadmin@shopverse.pk";
-export const ADMIN_PASSWORD = "ShopVerse@2026";
+export const ADMIN_USERNAME = "admin";
+export const ADMIN_PASSWORD = "admin45";
+
+export const STAFF_EMAIL = "storef@shopverse.pk";
+export const STAFF_USERNAME = "storef";
+export const STAFF_PASSWORD = "storef65";
 
 export interface AuthData {
   accessToken: string;
   refreshToken: string;
-  admin: { id: string; name: string; email: string; role: string; permissions: string[] };
+  admin: { id: string; name: string; username?: string | null; email: string; role: string; permissions: string[] };
 }
 
 export function authHeader(token: string) {

@@ -11,6 +11,7 @@ export class ApiError extends Error {
 export interface AdminUser {
   id: string;
   name: string;
+  username?: string | null;
   email: string;
   role: string;
   permissions: string[];

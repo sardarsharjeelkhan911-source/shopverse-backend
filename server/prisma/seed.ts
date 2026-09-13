@@ -7,9 +7,15 @@ const prisma = new PrismaClient();
 const slugify = (s: string) =>
   s.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME ?? "admin";
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? "superadmin@shopverse.pk";
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD ?? "ShopVerse@2026";
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD ?? "admin45";
 const ADMIN_NAME = process.env.ADMIN_NAME ?? "Super Admin";
+
+const STAFF_USERNAME = process.env.STAFF_USERNAME ?? "storef";
+const STAFF_EMAIL = process.env.STAFF_EMAIL ?? "storef@shopverse.pk";
+const STAFF_PASSWORD = process.env.STAFF_PASSWORD ?? "storef65";
+const STAFF_NAME = process.env.STAFF_NAME ?? "Store Assistant";
 
 const DEMO_STORE = {
   store_name: "ShopVerse",
@@ -72,15 +78,32 @@ async function main() {
   const passwordHash = await bcrypt.hash(ADMIN_PASSWORD, 12);
   await prisma.adminUser.upsert({
     where: { email: ADMIN_EMAIL },
-    update: { name: ADMIN_NAME, passwordHash },
+    update: { name: ADMIN_NAME, username: ADMIN_USERNAME, passwordHash },
     create: {
       name: ADMIN_NAME,
+      username: ADMIN_USERNAME,
       email: ADMIN_EMAIL,
       passwordHash,
       roleId: superRole.id,
     },
   });
-  console.log(`Super admin: ${ADMIN_EMAIL} / ${ADMIN_PASSWORD}`);
+  console.log(`Super admin: ${ADMIN_USERNAME} / ${ADMIN_PASSWORD}`);
+
+  // 3b. Store staff (STAFF role)
+  const staffRole = await prisma.role.findUniqueOrThrow({ where: { name: "STAFF" } });
+  const staffHash = await bcrypt.hash(STAFF_PASSWORD, 12);
+  await prisma.adminUser.upsert({
+    where: { email: STAFF_EMAIL },
+    update: { name: STAFF_NAME, username: STAFF_USERNAME, passwordHash: staffHash, roleId: staffRole.id },
+    create: {
+      name: STAFF_NAME,
+      username: STAFF_USERNAME,
+      email: STAFF_EMAIL,
+      passwordHash: staffHash,
+      roleId: staffRole.id,
+    },
+  });
+  console.log(`Staff: ${STAFF_USERNAME} / ${STAFF_PASSWORD}`);
 
   // 4. Store settings
   for (const [key, value] of Object.entries(DEMO_STORE)) {

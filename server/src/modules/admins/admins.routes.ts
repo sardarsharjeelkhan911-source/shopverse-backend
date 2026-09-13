@@ -15,6 +15,12 @@ router.use(authenticate);
 const createAdminSchema = z
   .object({
     name: z.string().min(2).max(120),
+    username: z
+      .string()
+      .min(2)
+      .max(60)
+      .regex(/^[a-zA-Z0-9_]+$/, "Only letters, numbers and underscores allowed")
+      .optional(),
     email: z.string().email(),
     password: z.string().min(8, "Password must be at least 8 characters"),
     roleId: z.string().cuid().optional(),
@@ -51,6 +57,7 @@ function serializeAdmin(a: any) {
   return {
     id: a.id,
     name: a.name,
+    username: a.username,
     email: a.email,
     role: a.role ? { id: a.role.id, name: a.role.name } : null,
     active: a.active,
@@ -153,7 +160,7 @@ router.get(
     const q = res.locals.query;
     const { take, skip } = paginateArgs(q);
     const where: any = {
-      ...(q.search ? { OR: [{ name: { contains: q.search } }, { email: { contains: q.search } }] } : {}),
+      ...(q.search ? { OR: [{ name: { contains: q.search } }, { email: { contains: q.search } }, { username: { contains: q.search } }] } : {}),
       ...(q.active !== undefined ? { active: q.active } : {}),
     };
     const [items, total] = await Promise.all([
@@ -169,17 +176,22 @@ router.post(
   validateBody(createAdminSchema),
   asyncHandler(async (req: AuthedRequest, res) => {
     if (req.admin!.role !== "SUPER_ADMIN") return fail(res, "Only SUPER_ADMIN can create admins", 403);
-    const { name, email, password, roleId, active } = req.body;
+    const { name, username, email, password, roleId, active } = req.body;
     const normalized = email.toLowerCase().trim();
+    const normalizedUsername = username ? username.trim().toLowerCase() : undefined;
     const dup = await prisma.adminUser.findUnique({ where: { email: normalized } });
     if (dup) return fail(res, "Email already in use", 409);
+    if (normalizedUsername) {
+      const dupUsername = await prisma.adminUser.findUnique({ where: { username: normalizedUsername } });
+      if (dupUsername) return fail(res, "Username already in use", 409);
+    }
 
     let role = await prisma.role.findUnique({ where: { name: "STAFF" } });
     if (roleId) role = await prisma.role.findUnique({ where: { id: roleId } });
     if (!role) return fail(res, "Role not found", 422);
 
     const admin = await prisma.adminUser.create({
-      data: { name, email: normalized, passwordHash: await hashPassword(password), roleId: role.id, active },
+      data: { name, username: normalizedUsername, email: normalized, passwordHash: await hashPassword(password), roleId: role.id, active },
       include: { role: { select: { id: true, name: true } } },
     });
     await audit(req.admin!.id, "CREATE", "AdminUser", admin.id, `Created admin ${admin.email} (${role.name})`);
@@ -203,6 +215,14 @@ router.put(
       const dup = await prisma.adminUser.findFirst({ where: { email: normalized, id: { not: target.id } } });
       if (dup) return fail(res, "Email already in use", 409);
       data.email = normalized;
+    }
+    if (req.body.username !== undefined) {
+      const nu = req.body.username ? req.body.username.trim().toLowerCase() : null;
+      if (nu) {
+        const dupUsername = await prisma.adminUser.findFirst({ where: { username: nu, id: { not: target.id } } });
+        if (dupUsername) return fail(res, "Username already in use", 409);
+      }
+      data.username = nu;
     }
     if (req.body.password) data.passwordHash = await hashPassword(req.body.password);
     if (req.body.active !== undefined) data.active = req.body.active;

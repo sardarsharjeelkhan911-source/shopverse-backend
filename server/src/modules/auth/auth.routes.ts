@@ -17,7 +17,7 @@ router.post(
   validateBody(loginSchema),
   asyncHandler(async (req, res) => {
     const ip = req.ip;
-    const result = await authService.login(req.body.email, req.body.password, ip);
+    const result = await authService.login(req.body, ip);
     return ok(res, result, "Login successful");
   })
 );
@@ -77,6 +77,7 @@ router.get(
     return ok(res, {
       id: admin.id,
       name: admin.name,
+      username: admin.username,
       email: admin.email,
       role: admin.role.name,
       permissions: admin.role.rolePermissions.map((rp) => rp.permission.key),
